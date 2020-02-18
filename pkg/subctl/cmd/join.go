@@ -26,6 +26,7 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
 
 	submariner "github.com/submariner-io/submariner-operator/pkg/apis/submariner/v1alpha1"
@@ -36,6 +37,8 @@ import (
 	"github.com/submariner-io/submariner-operator/pkg/subctl/operator/submarinercr"
 	"github.com/submariner-io/submariner-operator/pkg/subctl/operator/submarinerop"
 	"github.com/submariner-io/submariner-operator/pkg/versions"
+	broker "github.com/submariner-io/submariner-operator/pkg/broker"
+	clientset "k8s.io/client-go/kubernetes"
 )
 
 var (
@@ -52,6 +55,7 @@ var (
 	submarinerDebug      bool
 	noLabel              bool
 	brokerClusterContext string
+	clienttoken          *v1.Secret
 )
 
 func init() {
@@ -186,6 +190,8 @@ func joinSubmarinerCluster(config *rest.Config, subctlData *datafile.SubctlData)
 	exitOnError("Error determining the pod CIDR", err)
 
 	status.Start("Deploying Submariner")
+	clientSet, err := clientset.NewForConfig(config)
+	clienttoken = createSAPerCluster(clientSet, OperatorNamespace)
 	err = submarinercr.Ensure(config, OperatorNamespace, populateSubmarinerSpec(subctlData))
 	status.End(err == nil)
 	exitOnError("Error deploying Submariner", err)
@@ -289,7 +295,7 @@ func populateSubmarinerSpec(subctlData *datafile.SubctlData) submariner.Submarin
 		CeIPSecPSK:               base64.StdEncoding.EncodeToString(subctlData.IPSecPSK.Data["psk"]),
 		BrokerK8sCA:              base64.StdEncoding.EncodeToString(subctlData.ClientToken.Data["ca.crt"]),
 		BrokerK8sRemoteNamespace: string(subctlData.ClientToken.Data["namespace"]),
-		BrokerK8sApiServerToken:  string(subctlData.ClientToken.Data["token"]),
+		BrokerK8sApiServerToken:  string(clienttoken.Data["token"]), //string(subctlData.ClientToken.Data["token"]),
 		BrokerK8sApiServer:       brokerURL,
 		Broker:                   "k8s",
 		NatEnabled:               !disableNat,
@@ -301,5 +307,14 @@ func populateSubmarinerSpec(subctlData *datafile.SubctlData) submariner.Submarin
 		Namespace:                SubmarinerNamespace,
 	}
 
+	print("submariner spec is %s", submarinerSpec)
 	return submarinerSpec
+}
+
+func createSAPerCluster(clientSet clientset.Interface, brokerNamespace string) (*v1.Secret) {
+    broker.NewBrokerSA()
+    broker.NewBrokerRole()
+    broker.NewBrokerRoleBinding()
+    token, _ := broker.GetClientTokenSecret(clientSet, brokerNamespace)
+    return token
 }

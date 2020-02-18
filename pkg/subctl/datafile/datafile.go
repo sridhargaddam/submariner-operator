@@ -25,8 +25,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-
-	"github.com/submariner-io/submariner-operator/pkg/broker"
 )
 
 type SubctlData struct {
@@ -93,10 +91,10 @@ func newFromCluster(clientSet clientset.Interface, brokerNamespace, ipsecSubmFil
 	subctlData := &SubctlData{}
 	var err error
 
-	subctlData.ClientToken, err = broker.GetClientTokenSecret(clientSet, brokerNamespace)
-	if err != nil {
-		return nil, err
-	}
+	//subctlData.ClientToken, err = broker.GetClientTokenSecret(clientSet, brokerNamespace)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	if ipsecSubmFile != "" {
 		datafile, err := NewFromFile(ipsecSubmFile)
