@@ -28,8 +28,8 @@ var supportedNetworkPlugins = []string{"generic", "canal-flannel", "weave-net", 
 var validateCniCmd = &cobra.Command{
 	Use:   "cni",
 	Short: "Validate if Submariner supports the CNI network plugin.",
-	Long: "This command validates if the detected CNI network plugin is supported by Submariner or not.",
-	Run: validateCniConfig,
+	Long:  "This command validates if the detected CNI network plugin is supported by Submariner or not.",
+	Run:   validateCniConfig,
 }
 
 func init() {
